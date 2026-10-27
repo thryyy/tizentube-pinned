@@ -1,0 +1,62 @@
+diff --git a/mods/config.js b/mods/config.js
+index dbb55f0..a437889 100644
+--- a/mods/config.js
++++ b/mods/config.js
+@@ -1,6 +1,7 @@
+ const CONFIG_KEY = 'ytaf-configuration';
+ const defaultConfig = {
+   enableAdBlock: false,
++  audioShiftMs: -150,
+   enableSponsorBlock: true,
+   enableSponsorBlockToasts: true,
+   sponsorBlockManualSkips: ['intro', 'outro', 'filler'],
+diff --git a/mods/features/audioShift.js b/mods/features/audioShift.js
+new file mode 100644
+index 0000000..e6a2d78
+--- /dev/null
++++ b/mods/features/audioShift.js
+@@ -0,0 +1,32 @@
++// Moves the audio SourceBuffer's timeline by audioShiftMs (negative = sound earlier) so the picture and the
++// sound line up on TVs whose audio path is late (HDMI ARC). Every timestampOffset the page sets on an audio
++// buffer gets the shift added; the getter hides it, so the page's own bookkeeping stays consistent.
++import { configRead } from '../config.js';
++
++const shiftMs = configRead('audioShiftMs');
++const sbProto = window.SourceBuffer && window.SourceBuffer.prototype;
++const offsetDesc = sbProto && Object.getOwnPropertyDescriptor(sbProto, 'timestampOffset');
++const msProto = window.MediaSource && window.MediaSource.prototype;
++
++if (shiftMs && offsetDesc && offsetDesc.get && offsetDesc.set && msProto && msProto.addSourceBuffer) {
++    const addSourceBuffer = msProto.addSourceBuffer;
++    const shiftS = shiftMs / 1000;
++
++    msProto.addSourceBuffer = function (mimeType) {
++        const sb = addSourceBuffer.apply(this, arguments);
++        try {
++            if (/^audio\//i.test(String(mimeType))) {
++                Object.defineProperty(sb, 'timestampOffset', {
++                    configurable: true,
++                    get() { return offsetDesc.get.call(this) - shiftS; },
++                    set(value) { offsetDesc.set.call(this, Number(value) + shiftS); }
++                });
++                sb.timestampOffset = 0;
++                console.warn('tizentube-pinned: audio shift ' + shiftMs + ' ms on ' + mimeType);
++            }
++        } catch (e) {
++            console.warn('tizentube-pinned: audio shift failed: ' + e);
++        }
++        return sb;
++    };
++}
+diff --git a/mods/userScript.js b/mods/userScript.js
+index b4fba23..3840cad 100644
+--- a/mods/userScript.js
++++ b/mods/userScript.js
+@@ -3,6 +3,7 @@ if (window.location.hostname === 'localhost') {
+     initPatches();
+ }
+ import "whatwg-fetch";
++import "./features/audioShift.js";
+ import "core-js/proposals/object-getownpropertydescriptors";
+ 
+ import './translations/index.js'
