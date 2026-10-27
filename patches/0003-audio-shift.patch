@@ -6,7 +6,7 @@ index dbb55f0..a437889 100644
  const CONFIG_KEY = 'ytaf-configuration';
  const defaultConfig = {
    enableAdBlock: false,
-+  audioShiftMs: -150,
++  audioShiftMs: -120,
    enableSponsorBlock: true,
    enableSponsorBlockToasts: true,
    sponsorBlockManualSkips: ['intro', 'outro', 'filler'],
