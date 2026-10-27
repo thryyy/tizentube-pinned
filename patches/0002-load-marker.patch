@@ -1,10 +1,13 @@
 diff --git a/mods/userScript.js b/mods/userScript.js
-index 34eaf89..ea18e7f 100644
+index 34eaf89..93d2a61 100644
 --- a/mods/userScript.js
 +++ b/mods/userScript.js
-@@ -24,3 +24,5 @@ import "./ui/customUI.js";
+@@ -24,3 +24,8 @@ import "./ui/customUI.js";
  import "./ui/customGuideAction.js";
  import "./features/autoFrameRate.js";
  import "./ui/clock.js";
 +
-+console.info('tizentube-pinned: userscript loaded');
++console.info("tizentube-pinned: userscript loaded");
++if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.ShowAlertDialog) {
++    window.h5vcc.tizentube.ShowAlertDialog("tizentube-pinned", "userscript loaded");
++}
