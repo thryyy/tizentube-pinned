@@ -16,7 +16,7 @@ Licence: GPL-3.0-only, as upstream (`LICENSE`).
   - ad blocking off by default (for YouTube Premium accounts);
   - self-updater off by default, and the only caller of `h5vcc.tizentube.InstallAppFromURL` removed;
   - random device user-agent spoofing removed.
-  - `0003`: shifts the audio SourceBuffer timeline by `audioShiftMs` (default -120 ms, sound earlier) to
+  - `0003`: shifts the audio SourceBuffer timeline by `audioShiftMs` (default -115 ms, sound earlier) to
     compensate a late audio path (HDMI ARC); set it to 0 to disable.
 
 ## Rebuild `u.js`
