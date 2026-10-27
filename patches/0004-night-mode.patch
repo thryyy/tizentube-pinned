@@ -1,0 +1,159 @@
+diff --git a/mods/config.js b/mods/config.js
+index b34feb2..f28f7e0 100644
+--- a/mods/config.js
++++ b/mods/config.js
+@@ -2,6 +2,10 @@ const CONFIG_KEY = 'ytaf-configuration';
+ const defaultConfig = {
+   enableAdBlock: false,
+   audioShiftMs: -115,
++  enableNightMode: true,
++  nightModeStartHour: 22,
++  nightModeEndHour: 6,
++  nightModeStrength: 0.6,
+   enableSponsorBlock: true,
+   enableSponsorBlockToasts: true,
+   sponsorBlockManualSkips: ['intro', 'outro', 'filler'],
+diff --git a/mods/features/nightMode.js b/mods/features/nightMode.js
+new file mode 100644
+index 0000000..8d60dd8
+--- /dev/null
++++ b/mods/features/nightMode.js
+@@ -0,0 +1,43 @@
++// Night mode: a black overlay over the whole page (UI and video) between nightModeStartHour and
++// nightModeEndHour, for TVs whose lowest brightness is still too bright in a dark room.
++// The hour is read from the page's local clock (the TV's time zone, e.g. Europe/Paris), not UTC.
++import { configRead, configChangeEmitter } from '../config.js';
++
++let overlay = null;
++
++function inWindow(hour, start, end) {
++    if (start === end) return false;
++    return start < end ? hour >= start && hour < end : hour >= start || hour < end;
++}
++
++function ensureOverlay() {
++    if (overlay && overlay.isConnected) return overlay;
++    const host = document.body || document.documentElement;
++    if (!host) return null;
++    overlay = document.createElement('div');
++    const css = {
++        position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
++        background: '#000', 'pointer-events': 'none', 'z-index': '2147483647'
++    };
++    for (const name in css) overlay.style.setProperty(name, css[name], 'important');
++    host.appendChild(overlay);
++    return overlay;
++}
++
++function update() {
++    const active = configRead('enableNightMode') &&
++        inWindow(new Date().getHours(), configRead('nightModeStartHour'), configRead('nightModeEndHour'));
++    if (active) {
++        const el = ensureOverlay();
++        if (!el) return;
++        el.style.setProperty('opacity', String(configRead('nightModeStrength')), 'important');
++        el.style.setProperty('display', 'block', 'important');
++    } else if (overlay) {
++        overlay.style.setProperty('display', 'none', 'important');
++    }
++}
++
++configChangeEmitter.addEventListener('configChange', update);
++setInterval(update, 30000);
++update();
++if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', update);
+diff --git a/mods/translations/resources/en.json b/mods/translations/resources/en.json
+index 741901a..c317158 100644
+--- a/mods/translations/resources/en.json
++++ b/mods/translations/resources/en.json
+@@ -148,6 +148,16 @@
+                             }
+                         }
+                     },
++                    "nightMode": {
++                        "title": "Night Mode",
++                        "options": {
++                            "enableNightMode": "Activate night mode from 10 pm to 6 am",
++                            "strength": {
++                                "title": "Night Mode Strength",
++                                "subtitle": "How much the screen is darkened at night"
++                            }
++                        }
++                    },
+                     "disableSidebarContents": {
+                         "title": "Disable Sidebar Contents",
+                         "subtitle": "Select sidebar contents to disable"
+diff --git a/mods/translations/resources/fr.json b/mods/translations/resources/fr.json
+index dc83f29..8fd1620 100644
+--- a/mods/translations/resources/fr.json
++++ b/mods/translations/resources/fr.json
+@@ -148,6 +148,16 @@
+                             }
+                         }
+                     },
++                    "nightMode": {
++                        "title": "Mode nuit",
++                        "options": {
++                            "enableNightMode": "Activer le mode nuit de 22 h à 6 h",
++                            "strength": {
++                                "title": "Intensité du mode nuit",
++                                "subtitle": "De combien l'écran est assombri la nuit"
++                            }
++                        }
++                    },
+                     "disableSidebarContents": {
+                         "title": "Désactiver le contenu de la barre latérale",
+                         "subtitle": "Sélectionnez le contenu de la barre latérale à désactiver"
+diff --git a/mods/ui/settings.js b/mods/ui/settings.js
+index 34c07a4..04e37c1 100644
+--- a/mods/ui/settings.js
++++ b/mods/ui/settings.js
+@@ -583,6 +583,36 @@ export default function modernUI(update, parameters) {
+                         }
+                     ]
+                 },
++                {
++                    name: t('settings.options.uiSettings.options.nightMode.title'),
++                    icon: 'EYE_OFF',
++                    value: null,
++                    menuId: 'tt-night-mode-settings',
++                    options: [
++                        {
++                            name: t('settings.options.uiSettings.options.nightMode.options.enableNightMode'),
++                            icon: 'EYE_OFF',
++                            value: 'enableNightMode'
++                        },
++                        {
++                            name: t('settings.options.uiSettings.options.nightMode.options.strength.title'),
++                            icon: 'LENS_BLUE',
++                            value: null,
++                            menuId: 'tt-night-mode-strength',
++                            menuHeader: {
++                                title: t('settings.options.uiSettings.options.nightMode.options.strength.title'),
++                                subtitle: t('settings.options.uiSettings.options.nightMode.options.strength.subtitle')
++                            },
++                            options: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((strength) => {
++                                return {
++                                    name: `${Math.round(strength * 100)}%`,
++                                    key: 'nightModeStrength',
++                                    value: strength
++                                }
++                            })
++                        }
++                    ]
++                },
+                 {
+                     name: t('settings.options.uiSettings.options.disableSidebarContents.title'),
+                     icon: 'MENU',
+diff --git a/mods/userScript.js b/mods/userScript.js
+index 3840cad..673ea4e 100644
+--- a/mods/userScript.js
++++ b/mods/userScript.js
+@@ -4,6 +4,7 @@ if (window.location.hostname === 'localhost') {
+ }
+ import "whatwg-fetch";
+ import "./features/audioShift.js";
++import "./features/nightMode.js";
+ import "core-js/proposals/object-getownpropertydescriptors";
+ 
+ import './translations/index.js'
