@@ -1,0 +1,55 @@
+diff --git a/mods/config.js b/mods/config.js
+index 07d9bdf..dbb55f0 100644
+--- a/mods/config.js
++++ b/mods/config.js
+@@ -1,6 +1,6 @@
+ const CONFIG_KEY = 'ytaf-configuration';
+ const defaultConfig = {
+-  enableAdBlock: true,
++  enableAdBlock: false,
+   enableSponsorBlock: true,
+   enableSponsorBlockToasts: true,
+   sponsorBlockManualSkips: ['intro', 'outro', 'filler'],
+@@ -59,7 +59,7 @@ const defaultConfig = {
+   disabledSidebarContents: [],
+   sidebarContentsOrder: [],
+   disableChannelsOnSidebar: false,
+-  enableUpdater: true,
++  enableUpdater: false,
+   autoFrameRate: false,
+   autoFrameRatePauseVideoFor: 0,
+   enableSigninReminder: false,
+diff --git a/mods/resolveCommand.js b/mods/resolveCommand.js
+index 3d2d10d..d5cbc93 100644
+--- a/mods/resolveCommand.js
++++ b/mods/resolveCommand.js
+@@ -222,8 +222,7 @@ function customAction(action, parameters) {
+             configWrite('dontCheckUpdateUntil', parameters);
+             break;
+         case 'UPDATE_DOWNLOAD':
+-            window.h5vcc.tizentube.InstallAppFromURL(parameters);
+-            showToast(t('settings.options.updater.downloading.title'), t('settings.options.updater.downloading.subtitle'));
++            // Self-update is disabled: the app is only updated by sideloading a reviewed build.
+             break;
+         case 'SET_PLAYER_SPEED':
+             const speed = Number(parameters);
+diff --git a/mods/userScript.js b/mods/userScript.js
+index f8a9c6e..34eaf89 100644
+--- a/mods/userScript.js
++++ b/mods/userScript.js
+@@ -2,7 +2,6 @@ import initPatches from "./features/standaloneUserscript.js";
+ if (window.location.hostname === 'localhost') {
+     initPatches();
+ }
+-import "./features/userAgentSpoofing.js";
+ import "whatwg-fetch";
+ import "core-js/proposals/object-getownpropertydescriptors";
+ 
+@@ -17,7 +16,6 @@ import "./ui/settings.js";
+ import "./ui/disableWhosWatching.js";
+ import "./features/moreSubtitles.js";
+ import "./features/captionStylePersistence.js";
+-import "./features/updater.js";
+ import "./features/pictureInPicture.js";
+ import "./features/preferredVideoQuality.js";
+ import "./features/videoQueuing.js";
